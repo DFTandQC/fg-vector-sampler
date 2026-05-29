@@ -1,0 +1,69 @@
+{
+  "description": "Runtime defaults and presets for FG-vector sampling",
+  "defaults": {
+    "input_dir": "monomer",
+    "output_dir": "results/cluster",
+    "n_monomers": null,
+    "max_candidates": 30,
+    "beam_width": 30,
+    "max_attempts_per_cluster": 5000,
+    "seed": 12,
+    "parallel_jobs": 1,
+    "rg_max": 22.0,
+    "max_shape_anisotropy": 0.4,
+    "max_orientation_order": 0.95,
+    "w_shape": 10.0,
+    "w_orientation": 8.0,
+    "lambda_hard": 0.55,
+    "lambda_soft": 0.75,
+    "max_soft_overlap": 40.0,
+    "min_contacts": 1,
+    "jitter_deg": 8.0
+  },
+  "_presets": {
+    "balanced": {
+      "description": "Balanced preset for typical cluster sampling",
+      "rg_max": 22.0,
+      "lambda_hard": 0.55,
+      "lambda_soft": 0.75,
+      "max_soft_overlap": 40.0,
+      "beam_width": 30,
+      "max_candidates": 30,
+      "jitter_deg": 8.0
+    },
+    "compact": {
+      "description": "Tighter geometry for compact clusters",
+      "rg_max": 18.0,
+      "lambda_hard": 0.55,
+      "lambda_soft": 0.72,
+      "max_soft_overlap": 30.0,
+      "beam_width": 40,
+      "max_candidates": 50,
+      "jitter_deg": 6.0
+    },
+    "loose": {
+      "description": "Looser geometry for extended clusters",
+      "rg_max": 28.0,
+      "lambda_hard": 0.55,
+      "lambda_soft": 0.80,
+      "max_soft_overlap": 50.0,
+      "beam_width": 20,
+      "max_candidates": 30,
+      "jitter_deg": 10.0
+    },
+    "dimer": {
+      "description": "Recommended for two-monomer sampling",
+      "output_dir": "results/dimer",
+      "n_monomers": 2,
+      "rg_max": 20.0,
+      "lambda_hard": 0.55,
+      "lambda_soft": 0.75,
+      "max_soft_overlap": 35.0,
+      "beam_width": 40,
+      "max_candidates": 50,
+      "max_attempts_per_cluster": 2000,
+      "min_contacts": 1,
+      "jitter_deg": 8.0
+    }
+  }
+}
