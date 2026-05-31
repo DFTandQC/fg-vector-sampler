@@ -225,7 +225,14 @@ class ClusterSampler:
             t=t,
         )
 
-    def place_monomer(self, cluster: ClusterCandidate, monomer: Monomer, new_molecule_id: int) -> list[ClusterCandidate]:
+    def place_monomer(
+        self,
+        cluster: ClusterCandidate,
+        monomer: Monomer,
+        new_molecule_id: int,
+        child_limit: int | None = None,
+        attempt_limit: int | None = None,
+    ) -> list[ClusterCandidate]:
         local = monomer.shifted_to_com(molecule_id=new_molecule_id)
         pairs = self.compatible_pairs(cluster, local)
         if not pairs:
@@ -235,8 +242,13 @@ class ClusterSampler:
         # Try a balanced combination of adaptive pair choices and systematic pose bins.
         max_pair_trials = min(len(pairs), 60)
         attempts = 0
-        max_attempts = max(1, int(self.config.max_attempts_per_cluster))
-        child_limit = max(self.config.max_candidates, self.config.beam_width) * 2
+        max_attempts = max(
+            1,
+            int(self.config.max_attempts_per_cluster if attempt_limit is None else attempt_limit),
+        )
+        if child_limit is None:
+            child_limit = max(self.config.max_candidates, self.config.beam_width) * 2
+        child_limit = max(1, int(child_limit))
         for _ in range(max_pair_trials):
             if attempts >= max_attempts or len(children) >= child_limit:
                 break
@@ -596,7 +608,12 @@ class ClusterSampler:
             - cfg.w_clash * cand.clash_score
         )
 
-    def diverse_select(self, candidates: list[ClusterCandidate], k: int) -> list[ClusterCandidate]:
+    def diverse_select(
+        self,
+        candidates: list[ClusterCandidate],
+        k: int,
+        record_selection: bool = True,
+    ) -> list[ClusterCandidate]:
         candidates = sorted(candidates, key=lambda c: c.score, reverse=True)
         selected: list[ClusterCandidate] = []
         per_mode: dict[str, int] = {}
@@ -611,8 +628,9 @@ class ClusterSampler:
             selected.append(cand)
             local_signatures.add(sig)
             per_mode[cand.mode_label] = per_mode.get(cand.mode_label, 0) + 1
-            self.seen_modes[cand.mode_label] = self.seen_modes.get(cand.mode_label, 0) + 1
-            self.coverage.recent_unique.append(1 if was_novel else 0)
+            if record_selection:
+                self.seen_modes[cand.mode_label] = self.seen_modes.get(cand.mode_label, 0) + 1
+                self.coverage.recent_unique.append(1 if was_novel else 0)
             if len(selected) >= k:
                 break
         return selected
@@ -641,9 +659,28 @@ class ClusterSampler:
         beam = [self.initial_candidate(prepared[0], molecule_id=0)]
         for idx, monomer in enumerate(prepared[1:], start=1):
             new_beam: list[ClusterCandidate] = []
+            prune_threshold = max(self.config.beam_width * 4, self.config.max_candidates * 2)
+            retained_after_prune = max(self.config.beam_width * 2, self.config.max_candidates)
             for partial in beam:
-                children = self.place_monomer(partial, monomer, new_molecule_id=idx)
+                branch_child_limit = max(8, math.ceil(prune_threshold / len(beam)))
+                branch_attempt_limit = min(
+                    self.config.max_attempts_per_cluster,
+                    max(100, branch_child_limit * 20),
+                )
+                children = self.place_monomer(
+                    partial,
+                    monomer,
+                    new_molecule_id=idx,
+                    child_limit=branch_child_limit,
+                    attempt_limit=branch_attempt_limit,
+                )
                 new_beam.extend(children)
+                if len(new_beam) >= prune_threshold:
+                    new_beam = self.diverse_select(
+                        new_beam,
+                        retained_after_prune,
+                        record_selection=False,
+                    )
             if not new_beam:
                 break
             beam = self.diverse_select(new_beam, self.config.beam_width)
