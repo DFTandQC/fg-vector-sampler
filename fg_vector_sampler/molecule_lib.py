@@ -199,7 +199,7 @@ def read_xyz(path: str | Path, name: str | None = None, molecule_id: int = 0) ->
     lines = path.read_text(encoding="utf-8").splitlines()
     n = int(lines[0].strip())
     atoms: list[Atom] = []
-    for line in lines[2: 2 + n]:
+    for line in lines[2 : 2 + n]:
         parts = line.split()
         if len(parts) < 4:
             continue
