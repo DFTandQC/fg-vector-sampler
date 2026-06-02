@@ -6,9 +6,12 @@ from typing import Any, Iterable
 import hashlib
 import json
 import math
+import logging
 import numpy as np
 import networkx as nx
 from scipy.spatial import cKDTree
+
+logger = logging.getLogger(__name__)
 
 from .core import (
     Atom,
@@ -657,12 +660,23 @@ class ClusterSampler:
         prepared = []
         for idx, m in enumerate(monomers):
             prepared.append(Monomer(m.name, m.atoms, m.features, molecule_id=idx).shifted_to_com(molecule_id=idx))
+        
+        logger.info(f"[SAMPLING] Starting multimer sampling with {len(monomers)} monomers")
+        for idx, m in enumerate(prepared):
+            logger.info(f"  Monomer {idx}: name={m.name}, atoms={len(m.atoms)}, features={len(m.features)}")
+        
         beam = [self.initial_candidate(prepared[0], molecule_id=0)]
+        logger.info(f"[STEP 0] Initialized with monomer '{prepared[0].name}' (molecule_id=0), beam size=1")
+        
         for idx, monomer in enumerate(prepared[1:], start=1):
+            logger.info(f"\n[STEP {idx}] Placing monomer '{monomer.name}' (molecule_id={idx})")
+            logger.info(f"  Current beam size: {len(beam)}")
+            
             new_beam: list[ClusterCandidate] = []
             prune_threshold = max(self.config.beam_width * 4, self.config.max_candidates * 2)
             retained_after_prune = max(self.config.beam_width * 2, self.config.max_candidates)
-            for partial in beam:
+            
+            for partial_idx, partial in enumerate(beam):
                 branch_child_limit = max(8, math.ceil(prune_threshold / len(beam)))
                 branch_attempt_limit = min(
                     self.config.max_attempts_per_cluster,
@@ -675,17 +689,27 @@ class ClusterSampler:
                     child_limit=branch_child_limit,
                     attempt_limit=branch_attempt_limit,
                 )
+                logger.debug(f"    Partial {partial_idx}: generated {len(children)} children from {len(partial.monomers)} monomers")
                 new_beam.extend(children)
                 if len(new_beam) >= prune_threshold:
+                    logger.debug(f"    Pruning triggered: {len(new_beam)} → {retained_after_prune}")
                     new_beam = self.diverse_select(
                         new_beam,
                         retained_after_prune,
                         record_selection=False,
                     )
+            
             if not new_beam:
+                logger.warning(f"  No valid candidates generated after placing monomer {idx}")
                 break
+            
+            logger.info(f"  After placement: {len(new_beam)} candidates before final beam selection")
             beam = self.diverse_select(new_beam, self.config.beam_width)
-        return self.diverse_select(beam, self.config.max_candidates)
+            logger.info(f"  After beam selection: {len(beam)} candidates kept")
+        
+        final = self.diverse_select(beam, self.config.max_candidates)
+        logger.info(f"\n[FINAL] Sampling complete: {len(final)} candidates selected from {len(beam)} beam")
+        return final
 
     def export(self, candidates: list[ClusterCandidate], output_dir: str | Path) -> None:
         output_dir = Path(output_dir)
