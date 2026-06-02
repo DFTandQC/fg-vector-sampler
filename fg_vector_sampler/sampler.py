@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 import hashlib
 import json
 import math
@@ -10,8 +10,6 @@ import logging
 import numpy as np
 import networkx as nx
 from scipy.spatial import cKDTree
-
-logger = logging.getLogger(__name__)
 
 from .core import (
     Atom,
@@ -29,6 +27,8 @@ from .core import (
 )
 from .priors import FunctionalGroupPrior
 from .molecule_lib import write_xyz, write_json
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass

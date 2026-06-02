@@ -9,9 +9,12 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from collections import Counter
 import numpy as np
+
+if TYPE_CHECKING:
+    from .sampler import ClusterCandidate
 
 
 def _json_safe(value: Any) -> Any:

@@ -7,13 +7,15 @@ and statistical analysis of sampled clusters.
 
 from __future__ import annotations
 
-import json
 from pathlib import Path
-from typing import Any
+from typing import Any, TYPE_CHECKING
 import numpy as np
 
 from .core import Atom
 from .molecule_lib import write_xyz, write_json
+
+if TYPE_CHECKING:
+    from .sampler import ClusterCandidate
 
 
 def compute_rmsd(atoms1: list[Atom], atoms2: list[Atom]) -> float | None:

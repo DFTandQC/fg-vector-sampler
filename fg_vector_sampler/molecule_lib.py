@@ -13,7 +13,7 @@ from typing import Any, Optional
 import json
 import re
 import numpy as np
-from .core import Atom, Monomer, Feature
+from .core import Atom, Monomer
 
 
 @dataclass

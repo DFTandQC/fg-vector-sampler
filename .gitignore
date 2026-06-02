@@ -18,6 +18,9 @@ fg_vector_sampler.egg-info/
 outputs/
 results/
 archive/
+.coverage
+htmlcov/
+.pytest_cache/
 
 # IDEs
 .vscode/
