@@ -1,0 +1,39 @@
+name: Feature Request
+description: Suggest an improvement or new feature
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an idea to improve FG-Vector Sampler!
+  - type: textarea
+    id: problem
+    attributes:
+      label: Is your feature request related to a problem?
+      description: Describe the problem this feature would solve
+      placeholder: "I'm always frustrated when..."
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Describe the desired solution
+      description: What would you like to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Describe alternatives you've considered
+      description: Are there other ways to achieve this?
+  - type: textarea
+    id: impact
+    attributes:
+      label: Performance & Memory Impact
+      description: How would this affect performance, memory usage, or sampling quality?
+      placeholder: "This may increase beam search complexity by... or reduce memory usage by..."
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Any other relevant information

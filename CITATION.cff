@@ -1,0 +1,17 @@
+cff-version: 1.2.0
+title: "FG-Vector Sampler"
+message: "If you use this software, please cite it as below."
+version: "1.1.0"
+doi: ""
+authors:
+  - name: "DFTandQC"
+repository-code: "https://github.com/DFTandQC/fg-vector-sampler"
+url: "https://github.com/DFTandQC/fg-vector-sampler"
+license: "MIT"
+abstract: "Energy-free COM-anchored functional-group vector sampler for molecular cluster pre-sampling."
+keywords:
+  - chemistry
+  - molecular clusters
+  - sampling
+  - geometry
+  - pre-sampling

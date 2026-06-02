@@ -1,0 +1,53 @@
+name: Bug Report
+description: File a bug report
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+      placeholder: When I run the sampler with [parameters], it produces [unexpected behavior]
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: To Reproduce
+      description: Steps to reproduce the behavior
+      value: |
+        1. Run command: `python run_sampling.py --use PT --counts PT=3 ...`
+        2. With parameters: [list parameters]
+        3. See error: [error message]
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should happen instead?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Add any other context about the problem (output logs, profiling data, etc.)
+  - type: input
+    id: python_version
+    attributes:
+      label: Python version
+      placeholder: "3.10, 3.11, 3.12, etc."
+    validations:
+      required: true
+  - type: input
+    id: os
+    attributes:
+      label: Operating System
+      placeholder: "Windows, Linux, macOS"
+    validations:
+      required: true

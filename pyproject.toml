@@ -2,17 +2,90 @@
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["fg_vector_sampler*"]
+
 [project]
 name = "fg-vector-sampler"
-version = "0.1.0"
-description = "Energy-free COM-anchored functional-group vector sampler for molecular cluster pre-sampling"
+version = "1.1.0"
+description = "Energy-free COM-anchored functional-group vector sampler for rapid molecular cluster pre-sampling"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+  {name = "DFTandQC", email = "contact@dftandqc.org"}
+]
 requires-python = ">=3.10"
+keywords = ["molecular-clusters", "sampling", "geometry", "pre-processing", "computational-chemistry"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Chemistry",
+  "Topic :: Scientific/Engineering :: Physics",
+]
 dependencies = [
   "numpy>=1.23",
   "scipy>=1.9",
   "networkx>=3.0"
 ]
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["fg_vector_sampler*"]
+[project.scripts]
+fg-vector-sampler = "fg_vector_sampler.cli:main"
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0",
+  "pytest-cov>=3.0",
+  "black>=22.0",
+  "flake8>=4.0",
+  "mypy>=0.950",
+]
+docs = [
+  "sphinx>=4.0",
+  "sphinx-rtd-theme>=1.0",
+]
+
+[project.urls]
+Repository = "https://github.com/DFTandQC/fg-vector-sampler"
+Documentation = "https://fg-vector-sampler.readthedocs.io"
+"Bug Tracker" = "https://github.com/DFTandQC/fg-vector-sampler/issues"
+Changelog = "https://github.com/DFTandQC/fg-vector-sampler/blob/main/CHANGELOG.md"
+
+[tool.black]
+line-length = 100
+target-version = ['py310', 'py311', 'py312']
+include = '\.pyi?$'
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=fg_vector_sampler --cov-report=term-missing --cov-report=html"
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+
+[tool.coverage.run]
+source = ["fg_vector_sampler"]
+omit = ["*/tests/*", "**/__pycache__/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "pragma: no cover",
+  "def __repr__",
+  "raise AssertionError",
+  "raise NotImplementedError",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
