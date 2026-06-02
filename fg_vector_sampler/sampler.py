@@ -421,11 +421,11 @@ class ClusterSampler:
                     continue
                 angle_deg = None
                 if template.angle_min_deg is not None and a.global_direction is not None and b.global_direction is not None:
-                    # Generic directionality: favorable if local directions roughly oppose.
+                    # Generic directionality: 180 degrees is ideal when outward vectors oppose.
                     cosang = float(np.clip(np.dot(normalize(a.global_direction), -normalize(b.global_direction)), -1.0, 1.0))
-                    angle_deg = math.degrees(math.acos(cosang))
-                    # This angular test is conservative; keep contacts if unclear.
-                    if angle_deg < (180.0 - template.angle_min_deg) * 0.5:
+                    deviation_deg = math.degrees(math.acos(cosang))
+                    angle_deg = 180.0 - deviation_deg
+                    if angle_deg < template.angle_min_deg:
                         continue
                 contacts.append(Contact(a, b, template.contact_label, d, angle_deg, template.distance_score(d)))
         return contacts

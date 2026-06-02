@@ -153,7 +153,9 @@ class Feature:
 
     @property
     def outward_local(self) -> np.ndarray:
-        return normalize(self.local_position, self.local_direction)
+        if self.local_direction is not None:
+            return normalize(self.local_direction)
+        return normalize(self.local_position)
 
     @property
     def position(self) -> np.ndarray:
@@ -280,4 +282,3 @@ def distance_histogram(points: np.ndarray, bins: int = 16, max_distance: float =
             dists.append(float(np.linalg.norm(points[i] - points[j])))
     hist, _ = np.histogram(dists, bins=bins, range=(0.0, max_distance))
     return tuple(int(x) for x in hist)
-
