@@ -26,7 +26,7 @@ from .core import (
     distance_histogram,
 )
 from .priors import FunctionalGroupPrior
-from .molecule_lib import write_xyz, write_json
+from .molecule_lib import format_source_conformer_comment, write_xyz, write_json
 
 logger = logging.getLogger(__name__)
 
@@ -773,11 +773,14 @@ class ClusterSampler:
         summary = []
         for i, cand in enumerate(candidates):
             cid = f"cand_{i:04d}"
-            write_xyz(
-                output_dir / f"{cid}.xyz",
-                cand.atoms,
-                comment=f"score={cand.score:.4f} mode={cand.mode_label}",
+            source_conformers = cand.metadata.get("source_conformers", [])
+            source_comment = format_source_conformer_comment(source_conformers)
+            comment = " ".join(
+                fragment
+                for fragment in (f"score={cand.score:.4f}", f"mode={cand.mode_label}", source_comment)
+                if fragment
             )
+            write_xyz(output_dir / f"{cid}.xyz", cand.atoms, comment=comment)
             metadata = {
                 "candidate_id": cid,
                 "score": cand.score,
@@ -799,6 +802,7 @@ class ClusterSampler:
                     for c in cand.contacts
                 ],
                 "last_pose": cand.metadata.get("last_pose"),
+                "source_conformers": source_conformers,
             }
             write_json(output_dir / f"{cid}.json", metadata)
             summary.append(

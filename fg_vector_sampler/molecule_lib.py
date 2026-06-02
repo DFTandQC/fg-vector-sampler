@@ -219,6 +219,16 @@ def write_xyz(path: str | Path, atoms: list[Atom], comment: str = "") -> None:
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
+def format_source_conformer_comment(source_conformers: list[dict[str, Any]]) -> str:
+    """Format a compact XYZ comment fragment for the monomer conformers used."""
+    filenames = [
+        Path(str(source["selected_file"])).name
+        for source in source_conformers
+        if source.get("selected_file")
+    ]
+    return f"sources={','.join(filenames)}" if filenames else ""
+
+
 def json_safe(obj: Any) -> Any:
     if isinstance(obj, np.ndarray):
         return obj.tolist()

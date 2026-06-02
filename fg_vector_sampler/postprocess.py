@@ -12,7 +12,7 @@ from typing import Any, TYPE_CHECKING
 import numpy as np
 
 from .core import Atom
-from .molecule_lib import write_xyz, write_json
+from .molecule_lib import format_source_conformer_comment, write_xyz, write_json
 
 if TYPE_CHECKING:
     from .sampler import ClusterCandidate
@@ -227,6 +227,16 @@ def export_with_classification(
         "statistics": compute_statistics(candidates),
     }
 
+    def export_comment(cand: ClusterCandidate) -> str:
+        source_comment = format_source_conformer_comment(cand.metadata.get("source_conformers", []))
+        return " ".join(fragment for fragment in (f"score={cand.score:.4f}", source_comment) if fragment)
+
+    def export_metadata(cand: ClusterCandidate) -> dict[str, Any]:
+        return {
+            "source_conformers": cand.metadata.get("source_conformers", []),
+            "last_pose": cand.metadata.get("last_pose"),
+        }
+
     if by_type:
         by_type_dict = classify_by_contact_types(candidates)
         for type_key, cands in sorted(by_type_dict.items()):
@@ -235,7 +245,7 @@ def export_with_classification(
 
             for i, cand in enumerate(cands):
                 cid = f"{type_key}_{i:04d}"
-                write_xyz(subdir / f"{cid}.xyz", cand.atoms, comment=f"score={cand.score:.4f}")
+                write_xyz(subdir / f"{cid}.xyz", cand.atoms, comment=export_comment(cand))
                 metadata = {
                     "id": cid,
                     "type": type_key,
@@ -251,6 +261,7 @@ def export_with_classification(
                         }
                         for c in cand.contacts
                     ],
+                    **export_metadata(cand),
                 }
                 write_json(subdir / f"{cid}.json", metadata)
 
@@ -264,7 +275,7 @@ def export_with_classification(
     else:
         for i, cand in enumerate(candidates):
             cid = f"cand_{i:04d}"
-            write_xyz(output_dir / f"{cid}.xyz", cand.atoms, comment=f"score={cand.score:.4f}")
+            write_xyz(output_dir / f"{cid}.xyz", cand.atoms, comment=export_comment(cand))
             metadata = {
                 "id": cid,
                 "score": cand.score,
@@ -272,6 +283,7 @@ def export_with_classification(
                 "shape_anisotropy": getattr(cand, "shape_anisotropy", 0.0),
                 "orientation_order": getattr(cand, "orientation_order", 0.0),
                 "n_contacts": len(cand.contacts),
+                **export_metadata(cand),
             }
             write_json(output_dir / f"{cid}.json", metadata)
 

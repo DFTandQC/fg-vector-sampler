@@ -159,6 +159,23 @@ def load_monomers_from_folder(folder: Path, n_monomers: int | None = None):
     return monomers
 
 
+def describe_folder_monomers(folder: Path, n_monomers: int | None = None) -> list[dict[str, Any]]:
+    """Describe the fixed XYZ inputs used by legacy folder mode."""
+    xyz_files = sorted(folder.glob("*.xyz"))
+    if n_monomers is not None:
+        xyz_files = xyz_files[:n_monomers]
+    return [
+        {
+            "molecule_id": molecule_id,
+            "molecule": xyz_path.stem,
+            "copy_index": 0,
+            "selected_file": str(xyz_path),
+            "pool_size": 1,
+        }
+        for molecule_id, xyz_path in enumerate(xyz_files)
+    ]
+
+
 def collect_exported_xyz_files(
     output_dir: Path,
     folder_name: str = "all_xyz",
@@ -169,6 +186,7 @@ def collect_exported_xyz_files(
 
     source_xyz_paths = [p for p in output_dir.rglob("*.xyz") if collected_dir not in p.parents]
 
+    provenance_manifest: dict[str, Any] = {}
     for xyz_path in source_xyz_paths:
         if xyz_path.parent == collected_dir:
             continue
@@ -176,6 +194,15 @@ def collect_exported_xyz_files(
         safe_prefix = str(relative_parent).replace("\\", "__").replace("/", "__")
         target_name = f"{safe_prefix}__{xyz_path.name}" if safe_prefix != "." else xyz_path.name
         shutil.copy2(xyz_path, collected_dir / target_name)
+        metadata_path = xyz_path.with_suffix(".json")
+        if metadata_path.exists():
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+            provenance_manifest[target_name] = metadata.get("source_conformers", [])
+
+    write_json(
+        collected_dir / "source_conformers.json",
+        {"structures": provenance_manifest},
+    )
 
     return collected_dir
 
@@ -364,6 +391,7 @@ def run_single_job(job_id: int, settings: dict[str, Any], shared_templates: dict
         input_dir = Path(settings["input_dir"])
         n_monomers = settings.get("n_monomers")
         monomers = load_monomers_from_folder(input_dir, n_monomers=n_monomers)
+        selected_conformers = describe_folder_monomers(input_dir, n_monomers=n_monomers)
     if selected_conformers:
         write_json(output_dir / "selected_conformers.json", {"selected_conformers": selected_conformers})
     
@@ -394,6 +422,8 @@ def run_single_job(job_id: int, settings: dict[str, Any], shared_templates: dict
     )
     sampler = ClusterSampler(config=config)
     candidates = sampler.sample_multimer(monomers)
+    for candidate in candidates:
+        candidate.metadata["source_conformers"] = selected_conformers
     
     # Post-processing
     if settings.get("enable_filtering"):
