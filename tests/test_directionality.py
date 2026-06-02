@@ -2,7 +2,8 @@ import unittest
 
 import numpy as np
 
-from fg_vector_sampler.core import ContactTemplate, Feature
+from fg_vector_sampler.core import Atom, ContactTemplate, Feature, Monomer
+from fg_vector_sampler.features import atom_centered_features
 from fg_vector_sampler.priors import FunctionalGroupPrior
 from fg_vector_sampler.sampler import ClusterSampler
 
@@ -18,6 +19,36 @@ class FeatureDirectionTests(unittest.TestCase):
         )
 
         np.testing.assert_allclose(feature.outward_local, np.array([0.0, 1.0, 0.0]))
+
+    def test_carbonyl_oxygen_points_away_from_bonded_carbon(self):
+        monomer = Monomer(
+            "carbonyl",
+            [
+                Atom("C", [0.0, 0.0, 0.0]),
+                Atom("O", [1.2, 0.0, 0.0]),
+                Atom("C", [0.0, 4.0, 0.0]),
+            ],
+        )
+
+        featured = atom_centered_features(monomer)
+        carbonyl = next(feature for feature in featured.features if feature.type == "carbonyl_O")
+
+        np.testing.assert_allclose(carbonyl.local_direction, np.array([1.0, 0.0, 0.0]))
+
+    def test_sulfuric_oxygen_points_away_from_sulfur(self):
+        monomer = Monomer(
+            "cisSA",
+            [
+                Atom("S", [0.0, 0.0, 0.0]),
+                Atom("O", [0.0, 1.4, 0.0]),
+                Atom("O", [3.0, 0.0, 0.0]),
+            ],
+        )
+
+        featured = atom_centered_features(monomer)
+        sulfate_oxygen = next(feature for feature in featured.features if feature.type == "SA_O")
+
+        np.testing.assert_allclose(sulfate_oxygen.local_direction, np.array([0.0, 1.0, 0.0]))
 
 
 class ContactDirectionTests(unittest.TestCase):

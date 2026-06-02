@@ -21,6 +21,13 @@ def _nearest_atom_index(monomer: Monomer, atom_index: int, element: str, max_dis
     return matches[0] if matches else None
 
 
+def _direction_away_from_atom(monomer: Monomer, atom_index: int, neighbor_index: int | None) -> np.ndarray:
+    atom = monomer.atoms[atom_index]
+    if neighbor_index is None:
+        return normalize(atom.coord)
+    return normalize(atom.coord - monomer.atoms[neighbor_index].coord)
+
+
 def atom_centered_features(monomer: Monomer) -> Monomer:
     """Create atom-centered functional-group features from XYZ geometry.
 
@@ -39,23 +46,30 @@ def atom_centered_features(monomer: Monomer) -> Monomer:
         if element == "O":
             bonded_h = _nearest_atom_indices(monomer, idx, "H", 1.25)
             nearest_c = _nearest_atom_index(monomer, idx, "C", 1.65)
+            nearest_n = _nearest_atom_index(monomer, idx, "N", 1.70)
+            nearest_s = _nearest_atom_index(monomer, idx, "S", 1.90)
 
             if is_sa:
                 ftype = "SA_OH_acceptor" if bonded_h else "SA_O"
                 weight = 0.7 if bonded_h else 1.0
+                direction = _direction_away_from_atom(monomer, idx, nearest_s)
             elif is_hno3:
                 ftype = "HNO3_OH_acceptor" if bonded_h else "HNO3_O"
                 weight = 0.6 if bonded_h else 0.8
+                direction = _direction_away_from_atom(monomer, idx, nearest_n)
             elif is_so2:
                 ftype = "SO2_O"
                 weight = 0.7
+                direction = _direction_away_from_atom(monomer, idx, nearest_s)
             elif nearest_c is not None:
                 c_distance = float(np.linalg.norm(atom.coord - monomer.atoms[nearest_c].coord))
                 ftype = "carbonyl_O" if c_distance <= 1.30 else "ester_O"
                 weight = 1.0 if ftype == "carbonyl_O" else 0.85
+                direction = _direction_away_from_atom(monomer, idx, nearest_c)
             else:
                 ftype = "oxygen_acceptor"
                 weight = 0.8
+                direction = normalize(atom.coord)
 
             features.append(
                 Feature(
@@ -63,7 +77,7 @@ def atom_centered_features(monomer: Monomer) -> Monomer:
                     molecule_id=monomer.molecule_id,
                     type=ftype,
                     local_position=atom.coord.copy(),
-                    local_direction=normalize(atom.coord),
+                    local_direction=direction,
                     atom_indices=(idx,),
                     weight=weight,
                 )
@@ -75,7 +89,7 @@ def atom_centered_features(monomer: Monomer) -> Monomer:
                         molecule_id=monomer.molecule_id,
                         type="oxygen_acceptor",
                         local_position=atom.coord.copy(),
-                        local_direction=normalize(atom.coord),
+                        local_direction=direction,
                         atom_indices=(idx,),
                         weight=0.45,
                     )
@@ -87,7 +101,7 @@ def atom_centered_features(monomer: Monomer) -> Monomer:
                         molecule_id=monomer.molecule_id,
                         type="ester_region",
                         local_position=atom.coord.copy(),
-                        local_direction=normalize(atom.coord),
+                        local_direction=direction,
                         atom_indices=(idx,),
                         weight=0.45,
                     )
