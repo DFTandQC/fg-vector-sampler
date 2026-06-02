@@ -92,6 +92,22 @@ class ContactDirectionTests(unittest.TestCase):
 
         self.assertEqual(contacts, [])
 
+    def test_directional_score_decreases_away_from_ideal_opposition(self):
+        donor = self.feature("donor", 0, "donor", [0.0, 0.0, 0.0], [1.0, 0.0, 0.0])
+        acceptor = self.feature(
+            "acceptor",
+            1,
+            "acceptor",
+            [2.0, 0.0, 0.0],
+            [-np.sqrt(3.0) / 2.0, 0.5, 0.0],
+        )
+
+        contacts = self.sampler.detect_contacts([donor, acceptor])
+
+        self.assertEqual(len(contacts), 1)
+        self.assertAlmostEqual(contacts[0].angle_deg, 150.0)
+        self.assertAlmostEqual(contacts[0].score, 0.5)
+
 
 if __name__ == "__main__":
     unittest.main()

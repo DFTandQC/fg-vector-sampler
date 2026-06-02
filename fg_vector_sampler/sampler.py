@@ -427,7 +427,8 @@ class ClusterSampler:
                     angle_deg = 180.0 - deviation_deg
                     if angle_deg < template.angle_min_deg:
                         continue
-                contacts.append(Contact(a, b, template.contact_label, d, angle_deg, template.distance_score(d)))
+                score = template.distance_score(d) * template.angle_score(angle_deg)
+                contacts.append(Contact(a, b, template.contact_label, d, angle_deg, score))
         return contacts
 
     def molecule_contact_edges(self, contacts: list[Contact]) -> list[tuple[int, int]]:

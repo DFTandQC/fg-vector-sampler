@@ -245,6 +245,13 @@ class ContactTemplate:
         sigma = max((self.d_max - self.d_min) / 4.0, 1e-6)
         return float(math.exp(-((d - self.d_ideal) ** 2) / (2.0 * sigma * sigma)))
 
+    def angle_score(self, angle_deg: float | None) -> float:
+        """Return a linear directional score from the accepted limit to ideal opposition."""
+        if self.angle_min_deg is None or angle_deg is None:
+            return 1.0
+        span = max(180.0 - self.angle_min_deg, 1e-6)
+        return float(np.clip((angle_deg - self.angle_min_deg) / span, 0.0, 1.0))
+
 
 @dataclass
 class Contact:
