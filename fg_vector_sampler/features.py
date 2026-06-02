@@ -4,7 +4,9 @@ import numpy as np
 from .core import Feature, Monomer, normalize
 
 
-def _nearest_atom_indices(monomer: Monomer, atom_index: int, element: str, max_distance: float) -> list[int]:
+def _nearest_atom_indices(
+    monomer: Monomer, atom_index: int, element: str, max_distance: float
+) -> list[int]:
     atom = monomer.atoms[atom_index]
     matches: list[tuple[float, int]] = []
     for idx, other in enumerate(monomer.atoms):
@@ -16,12 +18,16 @@ def _nearest_atom_indices(monomer: Monomer, atom_index: int, element: str, max_d
     return [idx for _, idx in sorted(matches)]
 
 
-def _nearest_atom_index(monomer: Monomer, atom_index: int, element: str, max_distance: float) -> int | None:
+def _nearest_atom_index(
+    monomer: Monomer, atom_index: int, element: str, max_distance: float
+) -> int | None:
     matches = _nearest_atom_indices(monomer, atom_index, element, max_distance)
     return matches[0] if matches else None
 
 
-def _direction_away_from_atom(monomer: Monomer, atom_index: int, neighbor_index: int | None) -> np.ndarray:
+def _direction_away_from_atom(
+    monomer: Monomer, atom_index: int, neighbor_index: int | None
+) -> np.ndarray:
     atom = monomer.atoms[atom_index]
     if neighbor_index is None:
         return normalize(atom.coord)
@@ -141,7 +147,11 @@ def atom_centered_features(monomer: Monomer) -> Monomer:
             nearest_o = _nearest_atom_index(monomer, idx, "O", 1.25)
             nearest_n = _nearest_atom_index(monomer, idx, "N", 1.25)
             nearest_s = _nearest_atom_index(monomer, idx, "S", 1.55)
-            donor_parent = nearest_o if nearest_o is not None else nearest_n if nearest_n is not None else nearest_s
+            donor_parent = (
+                nearest_o
+                if nearest_o is not None
+                else nearest_n if nearest_n is not None else nearest_s
+            )
             if donor_parent is None:
                 continue
             direction = normalize(atom.coord - monomer.atoms[donor_parent].coord)

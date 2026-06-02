@@ -31,7 +31,7 @@ def analyze_contact_network(candidates: list[ClusterCandidate]) -> dict[str, Any
     contact_types = Counter()
     contact_distances = []
     contact_pairs = Counter()
-    
+
     for cand in candidates:
         for contact in cand.contacts:
             all_contacts.append(contact)
@@ -39,7 +39,7 @@ def analyze_contact_network(candidates: list[ClusterCandidate]) -> dict[str, Any
             contact_distances.append(contact.distance)
             pair = tuple(sorted((contact.feature_a.type, contact.feature_b.type)))
             contact_pairs[pair] += 1
-    
+
     if not all_contacts:
         return {
             "total_contacts": 0,
@@ -47,7 +47,7 @@ def analyze_contact_network(candidates: list[ClusterCandidate]) -> dict[str, Any
             "contact_pairs": {},
             "distance_stats": {},
         }
-    
+
     distances = np.array(contact_distances)
     return {
         "total_contacts": len(all_contacts),
@@ -82,20 +82,20 @@ def analyze_structural_diversity(candidates: list[ClusterCandidate]) -> dict[str
             "orientation_order_mean": 0.0,
             "mode_count": 0,
         }
-    
+
     rgs = np.array([c.rg for c in candidates])
     scores = np.array([c.score for c in candidates])
     shape_anisotropies = np.array([getattr(c, "shape_anisotropy", 0.0) for c in candidates])
     orientation_orders = np.array([getattr(c, "orientation_order", 0.0) for c in candidates])
     unique_modes = len(set(c.mode_label for c in candidates))
-    
+
     # Binned distributions
     rg_bins = np.linspace(rgs.min(), rgs.max(), 11)
     rg_hist, _ = np.histogram(rgs, bins=rg_bins)
-    
+
     score_bins = np.linspace(scores.min(), scores.max(), 11)
     score_hist, _ = np.histogram(scores, bins=score_bins)
-    
+
     return {
         "n_candidates": len(candidates),
         "rg_mean": float(np.mean(rgs)),
@@ -138,11 +138,11 @@ def analyze_coverage(candidates: list[ClusterCandidate]) -> dict[str, Any]:
     """Analyze contact mode coverage and saturation."""
     mode_counts = Counter(c.mode_label for c in candidates)
     contact_type_signatures = Counter()
-    
+
     for cand in candidates:
         contact_types = tuple(sorted(set(c.contact_label for c in cand.contacts)))
         contact_type_signatures[contact_types] += 1
-    
+
     return {
         "total_modes": len(mode_counts),
         "mode_sizes": {
@@ -163,7 +163,7 @@ def generate_report(
     """Generate a comprehensive statistical report."""
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     report = {
         "title": title,
         "summary": {
@@ -199,7 +199,7 @@ def generate_report(
         "structural_diversity": analyze_structural_diversity(candidates),
         "coverage_analysis": analyze_coverage(candidates),
     }
-    
+
     report_path = output_dir / "statistical_report.json"
     report_path.write_text(json.dumps(_json_safe(report), indent=2), encoding="utf-8")
 
@@ -208,7 +208,7 @@ def write_summary_csv(candidates: list[ClusterCandidate], output_path: Path | st
     """Write a simple CSV summary of all candidates."""
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     lines = [
         "id,score,rg,shape_anisotropy,orientation_order,n_contacts,clash_score,mode_label",
     ]
@@ -219,5 +219,5 @@ def write_summary_csv(candidates: list[ClusterCandidate], output_path: Path | st
             f"{getattr(cand, 'orientation_order', 0.0):.8f},"
             f"{len(cand.contacts)},{cand.clash_score:.8f},{cand.mode_label}"
         )
-    
+
     output_path.write_text("\n".join(lines) + "\n", encoding="utf-8")

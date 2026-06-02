@@ -157,7 +157,9 @@ def _hash_tuple(obj: Any) -> str:
 class ClusterSampler:
     """Energy-free COM-anchored functional-group vector cluster sampler."""
 
-    def __init__(self, prior: FunctionalGroupPrior | None = None, config: SamplerConfig | None = None):
+    def __init__(
+        self, prior: FunctionalGroupPrior | None = None, config: SamplerConfig | None = None
+    ):
         self.prior = prior or FunctionalGroupPrior.default()
         self.config = config or SamplerConfig()
         self.rng = np.random.default_rng(self.config.random_seed)
@@ -166,10 +168,14 @@ class ClusterSampler:
         self.kept_signatures: set[str] = set()
 
     def initial_candidate(self, monomer: Monomer, molecule_id: int = 0) -> ClusterCandidate:
-        m = monomer.shifted_to_com(molecule_id=molecule_id).transformed(np.eye(3), np.zeros(3), molecule_id)
+        m = monomer.shifted_to_com(molecule_id=molecule_id).transformed(
+            np.eye(3), np.zeros(3), molecule_id
+        )
         return ClusterCandidate([m], metadata={"seed": monomer.name})
 
-    def compatible_pairs(self, cluster: ClusterCandidate, monomer: Monomer) -> list[tuple[Feature, Feature, ContactTemplate]]:
+    def compatible_pairs(
+        self, cluster: ClusterCandidate, monomer: Monomer
+    ) -> list[tuple[Feature, Feature, ContactTemplate]]:
         pairs: list[tuple[Feature, Feature, ContactTemplate]] = []
         for a in cluster.features:
             for b in monomer.features:
@@ -178,10 +184,15 @@ class ClusterSampler:
                     pairs.append((a, b, template))
         return pairs
 
-    def choose_primary_pair(self, pairs: list[tuple[Feature, Feature, ContactTemplate]]) -> tuple[Feature, Feature, ContactTemplate]:
+    def choose_primary_pair(
+        self, pairs: list[tuple[Feature, Feature, ContactTemplate]]
+    ) -> tuple[Feature, Feature, ContactTemplate]:
         keys = [f"pair:{a.type}:{b.type}:{t.contact_label}" for a, b, t in pairs]
         weights = np.array(
-            [self.coverage.sampling_weight(k, t.priority * a.weight * b.weight) for (a, b, t), k in zip(pairs, keys)],
+            [
+                self.coverage.sampling_weight(k, t.priority * a.weight * b.weight)
+                for (a, b, t), k in zip(pairs, keys)
+            ],
             dtype=float,
         )
         weights = np.where(np.isfinite(weights), weights, 0.0)
@@ -265,7 +276,9 @@ class ClusterSampler:
                     for offset in self.config.lateral_offsets:
                         if attempts >= max_attempts or len(children) >= child_limit:
                             break
-                        pose = self.generate_pose(a, b, template, df, twist, offset, new_molecule_id)
+                        pose = self.generate_pose(
+                            a, b, template, df, twist, offset, new_molecule_id
+                        )
                         placed = local.transformed(pose.R, pose.t, molecule_id=new_molecule_id)
                         cand = ClusterCandidate(
                             monomers=[*cluster.monomers, placed],
@@ -285,7 +298,9 @@ class ClusterSampler:
                                 children.append(valid)
         return children
 
-    def evaluate_candidate(self, cand: ClusterCandidate, pose: PoseMetadata | None = None) -> ClusterCandidate | None:
+    def evaluate_candidate(
+        self, cand: ClusterCandidate, pose: PoseMetadata | None = None
+    ) -> ClusterCandidate | None:
         atoms = cand.atoms
         clash_score = self.soft_overlap_score(atoms)
         if clash_score is None:
@@ -327,7 +342,9 @@ class ClusterSampler:
         return cand
 
     @staticmethod
-    def _normalized_gyration_anisotropy(points: np.ndarray, weights: np.ndarray | None = None) -> float:
+    def _normalized_gyration_anisotropy(
+        points: np.ndarray, weights: np.ndarray | None = None
+    ) -> float:
         if len(points) < 3:
             return 0.0
         coords = np.asarray(points, dtype=float)
@@ -346,7 +363,7 @@ class ClusterSampler:
         if trace < 1e-12:
             return 0.0
         mean = trace / 3.0
-        return float(1.5 * np.sum((eigvals - mean) ** 2) / (trace ** 2))
+        return float(1.5 * np.sum((eigvals - mean) ** 2) / (trace**2))
 
     def com_shape_anisotropy(self, monomers: list[Monomer]) -> float:
         """Return 0 for isotropic COM arrangements and larger values for flat/linear clusters."""
@@ -361,7 +378,9 @@ class ClusterSampler:
             total_mass = float(atom_masses.sum())
             centers.append(np.sum(coords * atom_masses[:, None], axis=0) / total_mass)
             masses.append(total_mass)
-        return self._normalized_gyration_anisotropy(np.vstack(centers), np.array(masses, dtype=float))
+        return self._normalized_gyration_anisotropy(
+            np.vstack(centers), np.array(masses, dtype=float)
+        )
 
     def molecular_orientation_order(self, monomers: list[Monomer]) -> float:
         """Nematic-like order parameter for monomer plane normals; 1 means over-parallel."""
@@ -423,9 +442,19 @@ class ClusterSampler:
                 if not (template.d_min <= d <= template.d_max):
                     continue
                 angle_deg = None
-                if template.angle_min_deg is not None and a.global_direction is not None and b.global_direction is not None:
+                if (
+                    template.angle_min_deg is not None
+                    and a.global_direction is not None
+                    and b.global_direction is not None
+                ):
                     # Generic directionality: 180 degrees is ideal when outward vectors oppose.
-                    cosang = float(np.clip(np.dot(normalize(a.global_direction), -normalize(b.global_direction)), -1.0, 1.0))
+                    cosang = float(
+                        np.clip(
+                            np.dot(normalize(a.global_direction), -normalize(b.global_direction)),
+                            -1.0,
+                            1.0,
+                        )
+                    )
                     deviation_deg = math.degrees(math.acos(cosang))
                     angle_deg = 180.0 - deviation_deg
                     if angle_deg < template.angle_min_deg:
@@ -442,7 +471,9 @@ class ClusterSampler:
                 edges.add(tuple(sorted((i, j))))
         return sorted(edges)
 
-    def is_molecular_graph_connected(self, molecule_ids: list[int], edges: list[tuple[int, int]]) -> bool:
+    def is_molecular_graph_connected(
+        self, molecule_ids: list[int], edges: list[tuple[int, int]]
+    ) -> bool:
         if len(molecule_ids) <= 1:
             return True
         g = nx.Graph()
@@ -512,7 +543,14 @@ class ClusterSampler:
 
     @staticmethod
     def _is_base_feature(feature_type: str) -> bool:
-        return feature_type in {"nitrogen_base", "amine_N", "ammonia_base", "methylamine_base", "dimethylamine_base", "trimethylamine_base"}
+        return feature_type in {
+            "nitrogen_base",
+            "amine_N",
+            "ammonia_base",
+            "methylamine_base",
+            "dimethylamine_base",
+            "trimethylamine_base",
+        }
 
     @staticmethod
     def _is_carboxyl_feature(feature_type: str) -> bool:
@@ -550,7 +588,9 @@ class ClusterSampler:
     def bridge_score(self, cand: ClusterCandidate) -> float:
         """Reward OOM-like molecules that bridge sulfuric acid and a base."""
         roles = self.molecule_roles(cand)
-        if not any("sulfuric" in role for role in roles.values()) or not any("base" in role for role in roles.values()):
+        if not any("sulfuric" in role for role in roles.values()) or not any(
+            "base" in role for role in roles.values()
+        ):
             return 0.0
 
         contacts_by_molecule: dict[int, set[str]] = {}
@@ -580,7 +620,9 @@ class ClusterSampler:
         for contact in cand.contacts:
             for feature in (contact.feature_a, contact.feature_b):
                 if self._is_sulfuric_feature(feature.type):
-                    involved_by_molecule.setdefault(feature.molecule_id, set()).add(feature.feature_id)
+                    involved_by_molecule.setdefault(feature.molecule_id, set()).add(
+                        feature.feature_id
+                    )
         fractions = []
         for mid, feature_ids in total_by_molecule.items():
             if feature_ids:
@@ -659,23 +701,31 @@ class ClusterSampler:
         # Ensure unique molecule ids and COM-shifted internal coordinates.
         prepared = []
         for idx, m in enumerate(monomers):
-            prepared.append(Monomer(m.name, m.atoms, m.features, molecule_id=idx).shifted_to_com(molecule_id=idx))
-        
+            prepared.append(
+                Monomer(m.name, m.atoms, m.features, molecule_id=idx).shifted_to_com(
+                    molecule_id=idx
+                )
+            )
+
         logger.info(f"[SAMPLING] Starting multimer sampling with {len(monomers)} monomers")
         for idx, m in enumerate(prepared):
-            logger.info(f"  Monomer {idx}: name={m.name}, atoms={len(m.atoms)}, features={len(m.features)}")
-        
+            logger.info(
+                f"  Monomer {idx}: name={m.name}, atoms={len(m.atoms)}, features={len(m.features)}"
+            )
+
         beam = [self.initial_candidate(prepared[0], molecule_id=0)]
-        logger.info(f"[STEP 0] Initialized with monomer '{prepared[0].name}' (molecule_id=0), beam size=1")
-        
+        logger.info(
+            f"[STEP 0] Initialized with monomer '{prepared[0].name}' (molecule_id=0), beam size=1"
+        )
+
         for idx, monomer in enumerate(prepared[1:], start=1):
             logger.info(f"\n[STEP {idx}] Placing monomer '{monomer.name}' (molecule_id={idx})")
             logger.info(f"  Current beam size: {len(beam)}")
-            
+
             new_beam: list[ClusterCandidate] = []
             prune_threshold = max(self.config.beam_width * 4, self.config.max_candidates * 2)
             retained_after_prune = max(self.config.beam_width * 2, self.config.max_candidates)
-            
+
             for partial_idx, partial in enumerate(beam):
                 branch_child_limit = max(8, math.ceil(prune_threshold / len(beam)))
                 branch_attempt_limit = min(
@@ -689,7 +739,9 @@ class ClusterSampler:
                     child_limit=branch_child_limit,
                     attempt_limit=branch_attempt_limit,
                 )
-                logger.debug(f"    Partial {partial_idx}: generated {len(children)} children from {len(partial.monomers)} monomers")
+                logger.debug(
+                    f"    Partial {partial_idx}: generated {len(children)} children from {len(partial.monomers)} monomers"
+                )
                 new_beam.extend(children)
                 if len(new_beam) >= prune_threshold:
                     logger.debug(f"    Pruning triggered: {len(new_beam)} → {retained_after_prune}")
@@ -698,17 +750,21 @@ class ClusterSampler:
                         retained_after_prune,
                         record_selection=False,
                     )
-            
+
             if not new_beam:
                 logger.warning(f"  No valid candidates generated after placing monomer {idx}")
                 break
-            
-            logger.info(f"  After placement: {len(new_beam)} candidates before final beam selection")
+
+            logger.info(
+                f"  After placement: {len(new_beam)} candidates before final beam selection"
+            )
             beam = self.diverse_select(new_beam, self.config.beam_width)
             logger.info(f"  After beam selection: {len(beam)} candidates kept")
-        
+
         final = self.diverse_select(beam, self.config.max_candidates)
-        logger.info(f"\n[FINAL] Sampling complete: {len(final)} candidates selected from {len(beam)} beam")
+        logger.info(
+            f"\n[FINAL] Sampling complete: {len(final)} candidates selected from {len(beam)} beam"
+        )
         return final
 
     def export(self, candidates: list[ClusterCandidate], output_dir: str | Path) -> None:
@@ -717,7 +773,11 @@ class ClusterSampler:
         summary = []
         for i, cand in enumerate(candidates):
             cid = f"cand_{i:04d}"
-            write_xyz(output_dir / f"{cid}.xyz", cand.atoms, comment=f"score={cand.score:.4f} mode={cand.mode_label}")
+            write_xyz(
+                output_dir / f"{cid}.xyz",
+                cand.atoms,
+                comment=f"score={cand.score:.4f} mode={cand.mode_label}",
+            )
             metadata = {
                 "candidate_id": cid,
                 "score": cand.score,
@@ -741,23 +801,30 @@ class ClusterSampler:
                 "last_pose": cand.metadata.get("last_pose"),
             }
             write_json(output_dir / f"{cid}.json", metadata)
-            summary.append({
-                "candidate_id": cid,
-                "score": cand.score,
-                "mode_label": cand.mode_label,
-                "rg": cand.rg,
-                "shape_anisotropy": cand.shape_anisotropy,
-                "orientation_order": cand.orientation_order,
-                "clash_score": cand.clash_score,
-                "n_contacts": len(cand.contacts),
-            })
-        write_json(output_dir / "coverage_report.json", {
-            "attempt_counts": self.coverage.counts,
-            "valid_counts": self.coverage.valid_counts,
-            "n_unique_modes": len(self.seen_modes),
-        })
+            summary.append(
+                {
+                    "candidate_id": cid,
+                    "score": cand.score,
+                    "mode_label": cand.mode_label,
+                    "rg": cand.rg,
+                    "shape_anisotropy": cand.shape_anisotropy,
+                    "orientation_order": cand.orientation_order,
+                    "clash_score": cand.clash_score,
+                    "n_contacts": len(cand.contacts),
+                }
+            )
+        write_json(
+            output_dir / "coverage_report.json",
+            {
+                "attempt_counts": self.coverage.counts,
+                "valid_counts": self.coverage.valid_counts,
+                "n_unique_modes": len(self.seen_modes),
+            },
+        )
         # Simple CSV without pandas.
-        csv_lines = ["candidate_id,score,mode_label,rg,shape_anisotropy,orientation_order,clash_score,n_contacts"]
+        csv_lines = [
+            "candidate_id,score,mode_label,rg,shape_anisotropy,orientation_order,clash_score,n_contacts"
+        ]
         for row in summary:
             csv_lines.append(
                 f"{row['candidate_id']},{row['score']:.8f},{row['mode_label']},{row['rg']:.8f},"

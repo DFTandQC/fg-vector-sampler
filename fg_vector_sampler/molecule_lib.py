@@ -19,18 +19,20 @@ from .core import Atom, Monomer
 @dataclass
 class MoleculeSpec:
     """Specification for a molecular component in a cluster."""
-    
-    name: str              # Name of molecule type (e.g., "PT", "H2SO4", "HNO3")
+
+    name: str  # Name of molecule type (e.g., "PT", "H2SO4", "HNO3")
     file: Optional[str] = None  # Path to monomer XYZ file
-    conformer_pool: list[str] = field(default_factory=list)  # Alternative conformers for this molecule type
-    count: int = 1         # Number of this molecule in each cluster
-    enabled: bool = True   # Whether this molecule participates in sampling
+    conformer_pool: list[str] = field(
+        default_factory=list
+    )  # Alternative conformers for this molecule type
+    count: int = 1  # Number of this molecule in each cluster
+    enabled: bool = True  # Whether this molecule participates in sampling
 
 
 @dataclass
 class ClusterConfigSpec:
     """Configuration for multi-molecule cluster generation."""
-    
+
     input_dir: str = "monomer"
     output_dir: str = "results/cluster"
     molecules: list[MoleculeSpec] = field(default_factory=list)
@@ -48,7 +50,7 @@ class ClusterConfigSpec:
     max_soft_overlap: float = 40.0
     min_contacts: int = 1
     jitter_deg: float = 8.0
-    
+
     # Post-processing
     enable_filtering: bool = False
     rmsd_threshold: Optional[float] = None
@@ -80,12 +82,13 @@ def _matches_molecule_name(stem: str, name: str) -> bool:
         return True
     # Treat PT_conf_001.xyz / PT-001.xyz / PT-conformer-a.xyz as PT conformers.
     return any(
-        cleaned.startswith(f"{name.lower()}{sep}")
-        for sep in ("-", "_", ".", "conf", "conformer")
+        cleaned.startswith(f"{name.lower()}{sep}") for sep in ("-", "_", ".", "conf", "conformer")
     )
 
 
-def resolve_monomer_files(name: str, input_dir: str = "monomer", file_hint: Optional[str] = None) -> list[str]:
+def resolve_monomer_files(
+    name: str, input_dir: str = "monomer", file_hint: Optional[str] = None
+) -> list[str]:
     """
     Resolve all conformer files for a molecule name.
 
@@ -145,14 +148,16 @@ def resolve_monomer_files(name: str, input_dir: str = "monomer", file_hint: Opti
     return [str(path.absolute()) for _, _, path in candidates]
 
 
-def resolve_monomer_file(name: str, input_dir: str = "monomer", file_hint: Optional[str] = None) -> str:
+def resolve_monomer_file(
+    name: str, input_dir: str = "monomer", file_hint: Optional[str] = None
+) -> str:
     """
     Resolve the actual monomer file path.
-    
+
     Tries:
     1. Explicit file_hint if it exists
     2. Scan input_dir for matching files
-    
+
     Raises FileNotFoundError if no match found.
     """
     return resolve_monomer_files(name, input_dir=input_dir, file_hint=file_hint)[0]
@@ -163,19 +168,19 @@ def list_available_monomers(input_dir: str = "monomer") -> list[str]:
     input_path = Path(input_dir)
     if not input_path.exists():
         return []
-    
+
     xyz_files = sorted(input_path.glob("*.xyz"))
     names = []
     for child in sorted(p for p in input_path.iterdir() if p.is_dir()):
         if any(child.glob("*.xyz")):
             names.append(f"{child.name}/ ({len(list(child.glob('*.xyz')))} conformers)")
-    
+
     for xyz_file in xyz_files:
         filename = xyz_file.stem
         # Try to clean up filename
         filename_clean = _clean_monomer_stem(filename)
         names.append(filename_clean)
-    
+
     return names
 
 
@@ -184,7 +189,7 @@ def load_config_from_json(config_path: Path | str) -> dict[str, Any]:
     config_path = Path(config_path)
     if not config_path.exists():
         return {}
-    
+
     return json.loads(config_path.read_text(encoding="utf-8"))
 
 
@@ -194,7 +199,7 @@ def read_xyz(path: str | Path, name: str | None = None, molecule_id: int = 0) ->
     lines = path.read_text(encoding="utf-8").splitlines()
     n = int(lines[0].strip())
     atoms: list[Atom] = []
-    for line in lines[2:2+n]:
+    for line in lines[2 : 2 + n]:
         parts = line.split()
         if len(parts) < 4:
             continue
@@ -243,18 +248,18 @@ def build_cluster_config(
     **kwargs: Any,
 ) -> ClusterConfigSpec:
     """Build a cluster configuration from flexible specification.
-    
+
     Args:
         molecules: List of molecule names, e.g., ["PT", "H2SO4"]
         counts: Dict mapping molecule name to count, e.g., {"PT": 2, "H2SO4": 1}
         preset: Preset name from config.json
         **kwargs: Override any field in ClusterConfigSpec
-    
+
     Returns:
         Configured ClusterConfigSpec instance
     """
     input_dir = kwargs.pop("input_dir", "monomer")
-    
+
     # Load defaults and presets
     config_path = Path("config.json")
     if config_path.exists():
@@ -265,13 +270,13 @@ def build_cluster_config(
 
     # Avoid passing input_dir twice when it is provided explicitly above.
     defaults = {k: v for k, v in defaults.items() if k != "input_dir"}
-    
+
     # Create base config from defaults
     config = ClusterConfigSpec(
         input_dir=input_dir,
-        **{k: v for k, v in defaults.items() if k in ClusterConfigSpec.__dataclass_fields__}
+        **{k: v for k, v in defaults.items() if k in ClusterConfigSpec.__dataclass_fields__},
     )
-    
+
     # Apply preset if specified
     if preset:
         config_path = Path("config.json")
@@ -283,12 +288,12 @@ def build_cluster_config(
                 for k, v in preset_data.items():
                     if k in ClusterConfigSpec.__dataclass_fields__:
                         setattr(config, k, v)
-    
+
     # Apply CLI overrides
     for k, v in kwargs.items():
         if v is not None and k in ClusterConfigSpec.__dataclass_fields__:
             setattr(config, k, v)
-    
+
     # Build molecule list
     mol_specs = []
     if molecules:
@@ -306,6 +311,6 @@ def build_cluster_config(
                 )
             except FileNotFoundError as e:
                 raise ValueError(f"Failed to resolve molecule '{mol_name}': {e}")
-    
+
     config.molecules = mol_specs
     return config

@@ -6,13 +6,17 @@ import numpy as np
 
 try:
     from numba import jit
+
     HAS_NUMBA = True
 except ImportError:
     HAS_NUMBA = False
+
     def jit(*args, **kwargs):
         def decorator(func):
             return func
+
         return decorator
+
 
 ATOMIC_MASSES = {
     "H": 1.00784,
@@ -51,11 +55,14 @@ def normalize(v: np.ndarray, fallback: np.ndarray | None = None) -> np.ndarray:
 @jit(nopython=False, cache=True) if HAS_NUMBA else lambda f: f
 def _fast_rotation_matrix(x: float, y: float, z: float, c: float, s: float, C: float) -> np.ndarray:
     """Numba-accelerated Rodrigues rotation matrix computation."""
-    return np.array([
-        [c + x*x*C, x*y*C - z*s, x*z*C + y*s],
-        [y*x*C + z*s, c + y*y*C, y*z*C - x*s],
-        [z*x*C - y*s, z*y*C + x*s, c + z*z*C],
-    ], dtype=np.float64)
+    return np.array(
+        [
+            [c + x * x * C, x * y * C - z * s, x * z * C + y * s],
+            [y * x * C + z * s, c + y * y * C, y * z * C - x * s],
+            [z * x * C - y * s, z * y * C + x * s, c + z * z * C],
+        ],
+        dtype=np.float64,
+    )
 
 
 def orthonormal_basis_from_axis(axis: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -168,7 +175,9 @@ class Feature:
             return normalize(self.global_direction)
         return normalize(self.position)
 
-    def transformed(self, R: np.ndarray, t: np.ndarray, molecule_id: int | None = None) -> "Feature":
+    def transformed(
+        self, R: np.ndarray, t: np.ndarray, molecule_id: int | None = None
+    ) -> "Feature":
         mid = self.molecule_id if molecule_id is None else molecule_id
         return Feature(
             feature_id=self.feature_id,
@@ -207,7 +216,9 @@ class Monomer:
                 feature_id=f.feature_id,
                 molecule_id=mid,
                 type=f.type,
-                local_position=f.local_position - com if f.global_position is None else f.local_position,
+                local_position=(
+                    f.local_position - com if f.global_position is None else f.local_position
+                ),
                 local_direction=f.local_direction,
                 normal=f.normal,
                 atom_indices=f.atom_indices,
@@ -216,7 +227,9 @@ class Monomer:
             features.append(nf)
         return Monomer(self.name, atoms, features, mid)
 
-    def transformed(self, R: np.ndarray, t: np.ndarray, molecule_id: int | None = None) -> "Monomer":
+    def transformed(
+        self, R: np.ndarray, t: np.ndarray, molecule_id: int | None = None
+    ) -> "Monomer":
         mid = self.molecule_id if molecule_id is None else molecule_id
         atoms = [a.transformed(R, t, mid) for a in self.atoms]
         features = [f.transformed(R, t, mid) for f in self.features]
@@ -279,7 +292,9 @@ def radius_of_gyration(atoms: list[Atom]) -> float:
     return float(np.sqrt(np.sum(masses * np.sum((coords - com) ** 2, axis=1)) / np.sum(masses)))
 
 
-def distance_histogram(points: np.ndarray, bins: int = 16, max_distance: float = 20.0) -> tuple[int, ...]:
+def distance_histogram(
+    points: np.ndarray, bins: int = 16, max_distance: float = 20.0
+) -> tuple[int, ...]:
     if len(points) < 2:
         return tuple([0] * bins)
     dists = []

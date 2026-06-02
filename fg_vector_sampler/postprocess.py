@@ -20,19 +20,19 @@ if TYPE_CHECKING:
 
 def compute_rmsd(atoms1: list[Atom], atoms2: list[Atom]) -> float | None:
     """Compute RMSD between two structures.
-    
+
     Returns None if atom counts differ.
     """
     if len(atoms1) != len(atoms2):
         return None
-    
+
     coords1 = np.array([a.coord for a in atoms1])
     coords2 = np.array([a.coord for a in atoms2])
-    
+
     # Center on COM
     coords1 -= coords1.mean(axis=0)
     coords2 -= coords2.mean(axis=0)
-    
+
     # Simple RMSD without rotation optimization
     rmsd = float(np.sqrt(np.mean(np.sum((coords1 - coords2) ** 2, axis=1))))
     return rmsd
@@ -43,14 +43,14 @@ def deduplicate_rmsd(
     rmsd_threshold: float = 0.5,
 ) -> list[ClusterCandidate]:
     """Remove candidates based on RMSD threshold.
-    
+
     Keeps the first occurrence and removes similar ones.
     """
     if not candidates:
         return []
-    
+
     kept: list[ClusterCandidate] = [candidates[0]]
-    
+
     for cand in candidates[1:]:
         is_unique = True
         for kept_cand in kept:
@@ -60,7 +60,7 @@ def deduplicate_rmsd(
                 break
         if is_unique:
             kept.append(cand)
-    
+
     return kept
 
 
@@ -71,13 +71,13 @@ def filter_by_score(
 ) -> list[ClusterCandidate]:
     """Filter candidates by score range."""
     result = candidates
-    
+
     if min_score is not None:
         result = [c for c in result if c.score >= min_score]
-    
+
     if max_score is not None:
         result = [c for c in result if c.score <= max_score]
-    
+
     return result
 
 
@@ -88,13 +88,13 @@ def filter_by_contacts(
 ) -> list[ClusterCandidate]:
     """Filter candidates by number of inter-molecular contacts."""
     result = candidates
-    
+
     if min_contacts is not None:
         result = [c for c in result if len(c.contacts) >= min_contacts]
-    
+
     if max_contacts is not None:
         result = [c for c in result if len(c.contacts) <= max_contacts]
-    
+
     return result
 
 
@@ -105,13 +105,13 @@ def filter_by_rg(
 ) -> list[ClusterCandidate]:
     """Filter candidates by radius of gyration."""
     result = candidates
-    
+
     if min_rg is not None:
         result = [c for c in result if c.rg >= min_rg]
-    
+
     if max_rg is not None:
         result = [c for c in result if c.rg <= max_rg]
-    
+
     return result
 
 
@@ -119,29 +119,31 @@ def keep_best_by_contacts(candidates: list[ClusterCandidate], n: int) -> list[Cl
     """Keep only the N candidates with the most contacts."""
     if n <= 0 or len(candidates) == 0:
         return candidates
-    
+
     sorted_cands = sorted(candidates, key=lambda c: len(c.contacts), reverse=True)
     return sorted_cands[:n]
 
 
-def classify_by_contact_types(candidates: list[ClusterCandidate]) -> dict[str, list[ClusterCandidate]]:
+def classify_by_contact_types(
+    candidates: list[ClusterCandidate],
+) -> dict[str, list[ClusterCandidate]]:
     """Classify candidates by their dominant contact types.
-    
+
     Returns a dict mapping contact type signature to list of candidates.
     """
     by_type: dict[str, list[ClusterCandidate]] = {}
-    
+
     for cand in candidates:
         if not cand.contacts:
             key = "no_contacts"
         else:
             contact_types = sorted(set(c.contact_label for c in cand.contacts))
             key = "|".join(contact_types)
-        
+
         if key not in by_type:
             by_type[key] = []
         by_type[key].append(cand)
-    
+
     return by_type
 
 
@@ -157,14 +159,14 @@ def compute_statistics(candidates: list[ClusterCandidate]) -> dict[str, Any]:
             "shape_anisotropy": {},
             "orientation_order": {},
         }
-    
+
     scores = [c.score for c in candidates]
     rgs = [c.rg for c in candidates]
     contacts = [len(c.contacts) for c in candidates]
     clash_scores = [c.clash_score for c in candidates]
     shape_anisotropies = [getattr(c, "shape_anisotropy", 0.0) for c in candidates]
     orientation_orders = [getattr(c, "orientation_order", 0.0) for c in candidates]
-    
+
     return {
         "n_candidates": len(candidates),
         "score": {
@@ -213,24 +215,24 @@ def export_with_classification(
     by_score: bool = False,
 ) -> dict[str, Any]:
     """Export candidates, optionally organizing by contact type or score range.
-    
+
     Returns a summary dict with export statistics.
     """
     output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    
+
     summary: dict[str, Any] = {
         "total_candidates": len(candidates),
         "export_organization": [],
         "statistics": compute_statistics(candidates),
     }
-    
+
     if by_type:
         by_type_dict = classify_by_contact_types(candidates)
         for type_key, cands in sorted(by_type_dict.items()):
             subdir = output_dir / f"type_{type_key.replace('|', '_')}"
             subdir.mkdir(parents=True, exist_ok=True)
-            
+
             for i, cand in enumerate(cands):
                 cid = f"{type_key}_{i:04d}"
                 write_xyz(subdir / f"{cid}.xyz", cand.atoms, comment=f"score={cand.score:.4f}")
@@ -251,12 +253,14 @@ def export_with_classification(
                     ],
                 }
                 write_json(subdir / f"{cid}.json", metadata)
-            
-            summary["export_organization"].append({
-                "type": type_key,
-                "count": len(cands),
-                "directory": str(subdir),
-            })
+
+            summary["export_organization"].append(
+                {
+                    "type": type_key,
+                    "count": len(cands),
+                    "directory": str(subdir),
+                }
+            )
     else:
         for i, cand in enumerate(candidates):
             cid = f"cand_{i:04d}"
@@ -270,6 +274,6 @@ def export_with_classification(
                 "n_contacts": len(cand.contacts),
             }
             write_json(output_dir / f"{cid}.json", metadata)
-    
+
     write_json(output_dir / "export_summary.json", summary)
     return summary

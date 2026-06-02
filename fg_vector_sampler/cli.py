@@ -25,7 +25,9 @@ def main() -> None:
         m = atom_centered_features(m)
         monomers.append(m)
 
-    config = SamplerConfig(max_candidates=args.max_candidates, beam_width=args.beam_width, random_seed=args.seed)
+    config = SamplerConfig(
+        max_candidates=args.max_candidates, beam_width=args.beam_width, random_seed=args.seed
+    )
     sampler = ClusterSampler(config=config)
     candidates = sampler.sample_multimer(monomers)
     sampler.export(candidates, args.output)
